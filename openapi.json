@@ -1,0 +1,82 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+      "title": "GTD Backend API",
+      "version": "1.0.0",
+      "description": "API for interacting with Todoist via the GTD backend"
+    },
+    "servers": [
+      {
+        "url": "https://gtd-backend.onrender.com"
+      }
+    ],
+    "paths": {
+      "/tasks": {
+        "get": {
+          "operationId": "listTasks",
+          "summary": "List all active tasks",
+          "description": "Show all current Todoist tasks",
+          "responses": {
+            "200": {
+              "description": "A list of tasks"
+            }
+          }
+        },
+        "post": {
+          "operationId": "createTask",
+          "summary": "Create a task",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": { "type": "string" },
+                    "due_string": { "type": "string" },
+                    "priority": { "type": "integer" }
+                  },
+                  "required": ["content"]
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": { "description": "Task created" }
+          }
+        }
+      },
+      "/tasks/{task_id}/close": {
+        "post": {
+          "operationId": "closeTask",
+          "summary": "Complete a task",
+          "parameters": [
+            {
+              "name": "task_id",
+              "in": "path",
+              "required": true,
+              "schema": { "type": "string" }
+            }
+          ],
+          "responses": {
+            "204": { "description": "Task closed" }
+          }
+        }
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "ApiKeyAuth": {
+          "type": "apiKey",
+          "in": "header",
+          "name": "X-API-KEY"
+        }
+      }
+    },
+    "security": [
+      {
+        "ApiKeyAuth": []
+      }
+    ]
+  }
+  
