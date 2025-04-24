@@ -1,587 +1,160 @@
 {
-    "openapi": "3.1.0",
-    "info": {
-      "title": "GTD Backend API",
-      "version": "1.0.0",
-      "description": "API for interacting with Todoist via the GTD backend"
-    },
-    "servers": [
-      {
-        "url": "https://gtd-backend.onrender.com"
-      }
-    ],
-    "paths": {
-      "/tasks": {
-        "get": {
-          "operationId": "listTasks",
-          "summary": "List all active tasks",
-          "description": "Show all current Todoist tasks, optionally filtered by project, label, or Todoist filter syntax",
-          "parameters": [
-            {
-              "name": "project_id",
-              "in": "query",
-              "schema": { "type": "string" },
-              "description": "Only return tasks from this project"
-            },
-            {
-              "name": "label_id",
-              "in": "query",
-              "schema": { "type": "string" },
-              "description": "Only return tasks with this label"
-            },
-            {
-              "name": "filter",
-              "in": "query",
-              "schema": { "type": "string" },
-              "description": "A natural-language filter (e.g., 'today', 'overdue', 'priority 4')"
-            }
-          ],
-          "responses": {
-            "200": { "description": "A list of tasks" }
-          }
-        },
-        "post": {
-          "operationId": "createTask",
-          "summary": "Create a new task",
-          "description": "Add a new task to Todoist with content, due date, and optional priority",
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "content": { "type": "string" },
-                    "due_string": { "type": "string" },
-                    "priority": { "type": "integer", "minimum": 1, "maximum": 4 }
-                  },
-                  "required": ["content"]
-                }
+  "openapi": "3.1.0",
+  "info": {
+    "title": "GTD Backend API",
+    "version": "1.0.1",
+    "description": "Complete OpenAPI 3.1 spec for interacting with Todoist via the GTD backend"
+  },
+  "servers": [
+    { "url": "https://gtd-backend.onrender.com" }
+  ],
+  "paths": {
+    "/tasks": {
+      "get": {
+        "operationId": "listTasks",
+        "summary": "List all active tasks",
+        "parameters": [
+          { "name": "project_id", "in": "query", "schema": { "type": "string" }, "description": "Only return tasks from this project" },
+          { "name": "label_id",   "in": "query", "schema": { "type": "string" }, "description": "Only return tasks with this label" },
+          { "name": "filter",     "in": "query", "schema": { "type": "string" }, "description": "Natural-language filter (e.g., 'today', 'overdue')" }
+        ],
+        "responses": { "200": { "description": "A list of tasks" } }
+      },
+      "post": {
+        "operationId": "createTask",
+        "summary": "Create a new task",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content":     { "type": "string" },
+                  "project_id":  { "type": "string" },
+                  "section_id":  { "type": "string" },
+                  "due_string":  { "type": "string" },
+                  "priority":    { "type": "integer", "minimum":1, "maximum":4 },
+                  "label_ids":   { "type": "array", "items": { "type": "string" } }
+                },
+                "required": ["content"]
               }
             }
-          },
-          "responses": {
-            "200": { "description": "Task created" }
-          }
-        }
-      },
-      "/tasks/{task_id}": {
-        "get": {
-          "operationId": "getTask",
-          "summary": "Get task details",
-          "parameters": [
-            {
-              "name": "task_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "responses": {
-            "200": { "description": "Task details" }
           }
         },
-        "post": {
-          "operationId": "updateTask",
-          "summary": "Update a task",
-          "description": "Modify fields of an existing task (content, due date, priority)",
-          "parameters": [
-            {
-              "name": "task_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "content": { "type": "string" },
-                    "due_string": { "type": "string" },
-                    "priority": { "type": "integer", "minimum": 1, "maximum": 4 }
-                  }
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Task updated" }
-          }
-        }
-      },
-      "/tasks/{task_id}/close": {
-        "post": {
-          "operationId": "closeTask",
-          "summary": "Complete a task",
-          "parameters": [
-            {
-              "name": "task_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "responses": {
-            "204": { "description": "Task closed" }
-          }
-        }
-      },
-      "/tasks/{task_id}/reopen": {
-        "post": {
-          "operationId": "reopenTask",
-          "summary": "Re-open a completed task",
-          "parameters": [
-            {
-              "name": "task_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "responses": {
-            "204": { "description": "Task reopened" }
-          }
-        }
-      },
-      "/projects": {
-        "get": {
-          "operationId": "listProjects",
-          "summary": "List projects",
-          "responses": {
-            "200": { "description": "A list of projects" }
-          }
-        },
-        "post": {
-          "operationId": "createProject",
-          "summary": "Create a new project",
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "name": { "type": "string" },
-                    "color": { "type": "string" }
-                  },
-                  "required": ["name"]
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Project created" }
-          }
-        }
-      },
-      "/projects/{project_id}": {
-        "get": {
-          "operationId": "getProject",
-          "summary": "Get project details",
-          "parameters": [
-            {
-              "name": "project_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "responses": {
-            "200": { "description": "Project details" }
-          }
-        },
-        "post": {
-          "operationId": "updateProject",
-          "summary": "Update a project",
-          "parameters": [
-            {
-              "name": "project_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "name": { "type": "string" },
-                    "color": { "type": "string" },
-                    "order": { "type": "integer" }
-                  }
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Project updated" }
-          }
-        },
-        "delete": {
-          "operationId": "deleteProject",
-          "summary": "Delete a project",
-          "parameters": [
-            {
-              "name": "project_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "responses": {
-            "204": { "description": "Project deleted" }
-          }
-        }
-      },
-      "/sections": {
-        "get": {
-          "operationId": "listSections",
-          "summary": "List sections",
-          "parameters": [
-            {
-              "name": "project_id",
-              "in": "query",
-              "schema": { "type": "string" },
-              "description": "Only return sections in this project"
-            }
-          ],
-          "responses": {
-            "200": { "description": "A list of sections" }
-          }
-        },
-        "post": {
-          "operationId": "createSection",
-          "summary": "Create a new section",
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "project_id": { "type": "string" },
-                    "name": { "type": "string" }
-                  },
-                  "required": ["project_id", "name"]
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Section created" }
-          }
-        }
-      },
-      "/sections/{section_id}": {
-        "post": {
-          "operationId": "updateSection",
-          "summary": "Update a section",
-          "parameters": [
-            {
-              "name": "section_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "name": { "type": "string" },
-                    "order": { "type": "integer" }
-                  }
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Section updated" }
-          }
-        },
-        "delete": {
-          "operationId": "deleteSection",
-          "summary": "Delete a section",
-          "parameters": [
-            {
-              "name": "section_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "responses": {
-            "204": { "description": "Section deleted" }
-          }
-        }
-      },
-      "/labels": {
-        "get": {
-          "operationId": "listLabels",
-          "summary": "List all labels",
-          "responses": {
-            "200": { "description": "A list of labels" }
-          }
-        },
-        "post": {
-          "operationId": "createLabel",
-          "summary": "Create a new label",
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "name": { "type": "string" },
-                    "color": { "type": "string" }
-                  },
-                  "required": ["name"]
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Label created" }
-          }
-        }
-      },
-      "/labels/{label_id}": {
-        "get": {
-          "operationId": "getLabel",
-          "summary": "Get label details",
-          "parameters": [
-            {
-              "name": "label_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "responses": {
-            "200": { "description": "Label details" }
-          }
-        },
-        "post": {
-          "operationId": "updateLabel",
-          "summary": "Update a label",
-          "parameters": [
-            {
-              "name": "label_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "name": { "type": "string" },
-                    "color": { "type": "string" },
-                    "order": { "type": "integer" }
-                  }
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Label updated" }
-          }
-        },
-        "delete": {
-          "operationId": "deleteLabel",
-          "summary": "Delete a label",
-          "parameters": [
-            {
-              "name": "label_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "responses": {
-            "204": { "description": "Label deleted" }
-          }
-        }
-      },
-      "/comments": {
-        "get": {
-          "operationId": "listComments",
-          "summary": "List comments for task or project",
-          "parameters": [
-            {
-              "name": "task_id",
-              "in": "query",
-              "schema": { "type": "string" },
-              "description": "Only return comments for this task"
-            },
-            {
-              "name": "project_id",
-              "in": "query",
-              "schema": { "type": "string" },
-              "description": "Only return comments for this project"
-            }
-          ],
-          "responses": {
-            "200": { "description": "A list of comments" }
-          }
-        },
-        "post": {
-          "operationId": "createComment",
-          "summary": "Add a comment to a task or project",
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "content": { "type": "string" },
-                    "task_id": { "type": "string" },
-                    "project_id": { "type": "string" }
-                  },
-                  "required": ["content"]
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Comment created" }
-          }
-        }
-      },
-      "/comments/{comment_id}": {
-        "post": {
-          "operationId": "updateComment",
-          "summary": "Update a comment",
-          "parameters": [
-            {
-              "name": "comment_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "content": { "type": "string" }
-                  },
-                  "required": ["content"]
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Comment updated" }
-          }
-        },
-        "delete": {
-          "operationId": "deleteComment",
-          "summary": "Delete a comment",
-          "parameters": [
-            {
-              "name": "comment_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "responses": {
-            "204": { "description": "Comment deleted" }
-          }
-        }
-      },
-      "/reminders": {
-        "get": {
-          "operationId": "listReminders",
-          "summary": "List all reminders",
-          "responses": {
-            "200": { "description": "A list of reminders" }
-          }
-        },
-        "post": {
-          "operationId": "createReminder",
-          "summary": "Create a reminder for a task",
-          "requestBody": {
-            "required": true,
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "task_id": { "type": "string" },
-                    "due_string": { "type": "string" }
-                  },
-                  "required": ["task_id", "due_string"]
-                }
-              }
-            }
-          },
-          "responses": {
-            "200": { "description": "Reminder created" }
-          }
-        }
-      },
-      "/reminders/{reminder_id}": {
-        "delete": {
-          "operationId": "deleteReminder",
-          "summary": "Delete a reminder",
-          "parameters": [
-            {
-              "name": "reminder_id",
-              "in": "path",
-              "required": true,
-              "schema": { "type": "string" }
-            }
-          ],
-          "responses": {
-            "204": { "description": "Reminder deleted" }
-          }
-        }
-      },
-      "/collaborators": {
-        "get": {
-          "operationId": "listCollaborators",
-          "summary": "List collaborators on shared projects",
-          "responses": {
-            "200": { "description": "A list of collaborators" }
-          }
-        }
+        "responses": { "200": { "description": "Task created" } }
       }
     },
-    "components": {
-      "securitySchemes": {
-        "ApiKeyAuth": {
-          "type": "apiKey",
-          "in": "header",
-          "name": "X-API-KEY"
-        }
+    "/tasks/{task_id}": {
+      "get": {
+        "operationId": "getTask",
+        "summary": "Retrieve a specific task",
+        "parameters": [ { "name":"task_id","in":"path","required":true,"schema":{ "type":"string" } } ],
+        "responses": { "200":{ "description":"Task details" } }
       },
-      "schemas": {}
-    },
-    "security": [
-      {
-        "ApiKeyAuth": []
+      "post": {
+        "operationId": "updateTask",
+        "summary": "Update task properties",
+        "parameters": [ { "name":"task_id","in":"path","required":true,"schema":{ "type":"string" } } ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": {
+            "type":"object",
+            "properties":{
+              "content":    { "type":"string" },
+              "due_string": { "type":"string" },
+              "priority":   { "type":"integer","minimum":1,"maximum":4 },
+              "label_ids":  { "type":"array","items":{ "type":"string" } }
+            }
+          } } }
+        },
+        "responses": { "200":{ "description":"Task updated" } }
       }
-    ]
-  }
-  
+    },
+    "/tasks/{task_id}/close": {
+      "post": {
+        "operationId": "closeTask",
+        "summary": "Complete a task",
+        "parameters": [ { "name":"task_id","in":"path","required":true,"schema":{ "type":"string" } } ],
+        "responses": { "204":{ "description":"Task closed" } }
+      }
+    },
+    "/tasks/{task_id}/reopen": {
+      "post": {
+        "operationId": "reopenTask",
+        "summary": "Reopen a completed task",
+        "parameters": [ { "name":"task_id","in":"path","required":true,"schema":{ "type":"string" } } ],
+        "responses": { "204":{ "description":"Task reopened" } }
+      }
+    },
+    "/tasks/{task_id}/move": {
+      "post": {
+        "operationId": "moveTask",
+        "summary": "Move a task to another project or section",
+        "parameters": [ { "name":"task_id","in":"path","required":true,"schema":{ "type":"string" } } ],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema":{
+            "type":"object",
+            "properties":{
+              "project_id":{ "type":"string" },
+              "section_id":{ "type":"string" }
+            },
+            "required":["project_id"]
+          } } }
+        },
+        "responses": { "204":{ "description":"Task moved" } }
+      }
+    },
+    "/projects": {
+      "get": { "operationId":"listProjects","summary":"List all projects","responses":{"200":{"description":"Projects list"}} },
+      "post": { "operationId":"createProject","summary":"Create a new project","requestBody":{ "required":true,"content":{"application/json":{"schema":{ "type":"object","properties":{ "name":{"type":"string"},"color":{"type":"string"} },"required":["name"] } } } },"responses":{"200":{"description":"Project created"}} }
+    },
+    "/projects/{project_id}": {
+      "get": { "operationId":"getProject","summary":"Get project details","parameters":[{"name":"project_id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"Project details"}} },
+      "post": { "operationId":"updateProject","summary":"Update project","parameters":[{"name":"project_id","in":"path","required":true,"schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{ "type":"object","properties":{ "name":{"type":"string"},"color":{"type":"string"},"order":{"type":"integer"} } } } }},"responses":{"200":{"description":"Project updated"}} },
+      "delete": { "operationId":"deleteProject","summary":"Delete project","parameters":[{"name":"project_id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"204":{"description":"Project deleted"}} }
+    },
+    "/sections": {
+      "get": { "operationId":"listSections","summary":"List sections","parameters":[{"name":"project_id","in":"query","schema":{"type":"string"},"description":"Filter by project"}],"responses":{"200":{"description":"Sections list"}} },
+      "post": { "operationId":"createSection","summary":"Create section","requestBody":{"required":true,"content":{"application/json":{"schema":{ "type":"object","properties":{ "project_id":{"type":"string"},"name":{"type":"string"} },"required":["project_id","name"] } } }},"responses":{"200":{"description":"Section created"}} }
+    },
+    "/sections/{section_id}": {
+      "post": { "operationId":"updateSection","summary":"Update section","parameters":[{"name":"section_id","in":"path","required":true,"schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{ "type":"object","properties":{ "name":{"type":"string"},"order":{"type":"integer"} } }}}},"responses":{"200":{"description":"Section updated"}} },
+      "delete": { "operationId":"deleteSection","summary":"Delete section","parameters":[{"name":"section_id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"204":{"description":"Section deleted"}} }
+    },
+    "/labels": {
+      "get": { "operationId":"listLabels","summary":"List all labels","responses":{"200":{"description":"Labels list"}} },
+      "post": { "operationId":"createLabel","summary":"Create label","requestBody":{"required":true,"content":{"application/json":{"schema":{ "type":"object","properties":{ "name":{"type":"string"},"color":{"type":"string"} },"required":["name"] }}}},"responses":{"200":{"description":"Label created"}} }
+    },
+    "/labels/{label_id}": {
+      "get": { "operationId":"getLabel","summary":"Get label details","parameters":[{"name":"label_id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"Label details"}} },
+      "post": { "operationId":"updateLabel","summary":"Update label","parameters":[{"name":"label_id","in":"path","required":true,"schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{ "type":"object","properties":{ "name":{"type":"string"},"color":{"type":"string"},"order":{"type":"integer"} }}}}},"responses":{"200":{"description":"Label updated"}} },
+      "delete": { "operationId":"deleteLabel","summary":"Delete label","parameters":[{"name":"label_id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"204":{"description":"Label deleted"}} }
+    },
+    "/comments": {
+      "get": { "operationId":"listComments","summary":"List comments","parameters":[{"name":"task_id","in":"query","schema":{"type":"string"},"description":"Filter by task"},{"name":"project_id","in":"query","schema":{"type":"string"},"description":"Filter by project"}],"responses":{"200":{"description":"Comments list"}} },
+      "post": { "operationId":"createComment","summary":"Add comment","requestBody":{"required":true,"content":{"application/json":{"schema":{ "type":"object","properties":{ "content":{"type":"string"},"task_id":{"type":"string"},"project_id":{"type":"string"} },"required":["content"] }}}},"responses":{"200":{"description":"Comment created"}} }
+    },
+    "/comments/{comment_id}": {
+      "post":{ "operationId":"updateComment","summary":"Update comment","parameters":[{"name":"comment_id","in":"path","required":true,"schema":{"type":"string"}}],"requestBody":{"required":true,"content":{"application/json":{"schema":{ "type":"object","properties":{ "content":{"type":"string"} },"required":["content"] }}}},"responses":{"200":{"description":"Comment updated"}}},
+      "delete":{ "operationId":"deleteComment","summary":"Delete comment","parameters":[{"name":"comment_id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"204":{"description":"Comment deleted"}}}
+    },
+    "/reminders": {
+      "get": { "operationId":"listReminders","summary":"List reminders","responses":{"200":{"description":"Reminders list"}} },
+      "post": { "operationId":"createReminder","summary":"Create reminder","requestBody":{"required":true,"content":{"application/json":{"schema":{ "type":"object","properties":{ "task_id":{"type":"string"},"due_string":{"type":"string"} },"required":["task_id","due_string"] }}}},"responses":{"200":{"description":"Reminder created"}} }
+    },
+    "/reminders/{reminder_id}": {
+      "delete": { "operationId":"deleteReminder","summary":"Delete reminder","parameters":[{"name":"reminder_id","in":"path","required":true,"schema":{"type":"string"}}],"responses":{"204":{"description":"Reminder deleted"}} }
+    },
+    "/collaborators": {
+      "get": { "operationId":"listCollaborators","summary":"List collaborators","responses":{"200":{"description":"Collaborators list"}} }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": { "type":"apiKey", "in":"header", "name":"X-API-KEY" }
+    }
+  },
+  "security": [ { "ApiKeyAuth": [] } ]
+}
