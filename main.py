@@ -3,9 +3,24 @@ import os, requests
 
 app = Flask(__name__)
 TODOIST_TOKEN = os.getenv("TODOIST_TOKEN")
+API_KEY = os.getenv("API_KEY")  # API key for securing endpoints
 BASE_URL = "https://api.todoist.com/rest/v2"
 HEADERS = lambda: {"Authorization": f"Bearer {TODOIST_TOKEN}"}
 JSON_HEADERS = lambda: {**HEADERS(), "Content-Type": "application/json"}
+
+# Simple API key check for all non-health routes
+@app.before_request
+def require_api_key():
+    # Allow health-check without API key
+    if request.path == '/' and request.method == 'GET':
+        return None
+    # Ensure API_KEY is set
+    if not API_KEY:
+        return jsonify({"error": "Server misconfiguration: API_KEY not set"}), 500
+    # Check client-provided key
+    client_key = request.headers.get("X-API-KEY")
+    if client_key != API_KEY:
+        return jsonify({"error": "Unauthorized"}), 401
 
 # Health Check
 @app.route("/", methods=["GET"])
