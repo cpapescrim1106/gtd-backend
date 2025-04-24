@@ -11,16 +11,15 @@ JSON_HEADERS = lambda: {**HEADERS(), "Content-Type": "application/json"}
 # Simple API key check for all non-health routes
 @app.before_request
 def require_api_key():
-    # Allow health-check without API key
-    if request.path == '/' and request.method == 'GET':
+    # Allow health-check and OpenAPI doc without auth
+    if request.path in ('/', '/openapi.json') and request.method == 'GET':
         return None
-    # Ensure API_KEY is set
     if not API_KEY:
         return jsonify({"error": "Server misconfiguration: API_KEY not set"}), 500
-    # Check client-provided key
     client_key = request.headers.get("X-API-KEY")
     if client_key != API_KEY:
         return jsonify({"error": "Unauthorized"}), 401
+
 
 # Health Check
 @app.route("/", methods=["GET"])
