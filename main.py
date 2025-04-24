@@ -184,3 +184,8 @@ def list_collaborators():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
+
+@app.route("/openapi.json")
+def openapi_spec():
+    with open("openapi.json") as f:
+        return f.read(), 200, {"Content-Type": "application/json"}
