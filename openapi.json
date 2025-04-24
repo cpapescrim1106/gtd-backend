@@ -378,5 +378,210 @@
           "parameters": [
             {
               "name": "label_id",
-              "in
+              "in": "path",
+              "required": true,
+              "schema": { "type": "string" }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "color": { "type": "string" },
+                    "order": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": { "description": "Label updated" }
+          }
+        },
+        "delete": {
+          "operationId": "deleteLabel",
+          "summary": "Delete a label",
+          "parameters": [
+            {
+              "name": "label_id",
+              "in": "path",
+              "required": true,
+              "schema": { "type": "string" }
+            }
+          ],
+          "responses": {
+            "204": { "description": "Label deleted" }
+          }
+        }
+      },
+      "/comments": {
+        "get": {
+          "operationId": "listComments",
+          "summary": "List comments for task or project",
+          "parameters": [
+            {
+              "name": "task_id",
+              "in": "query",
+              "schema": { "type": "string" },
+              "description": "Only return comments for this task"
+            },
+            {
+              "name": "project_id",
+              "in": "query",
+              "schema": { "type": "string" },
+              "description": "Only return comments for this project"
+            }
+          ],
+          "responses": {
+            "200": { "description": "A list of comments" }
+          }
+        },
+        "post": {
+          "operationId": "createComment",
+          "summary": "Add a comment to a task or project",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": { "type": "string" },
+                    "task_id": { "type": "string" },
+                    "project_id": { "type": "string" }
+                  },
+                  "required": ["content"]
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": { "description": "Comment created" }
+          }
+        }
+      },
+      "/comments/{comment_id}": {
+        "post": {
+          "operationId": "updateComment",
+          "summary": "Update a comment",
+          "parameters": [
+            {
+              "name": "comment_id",
+              "in": "path",
+              "required": true,
+              "schema": { "type": "string" }
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "content": { "type": "string" }
+                  },
+                  "required": ["content"]
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": { "description": "Comment updated" }
+          }
+        },
+        "delete": {
+          "operationId": "deleteComment",
+          "summary": "Delete a comment",
+          "parameters": [
+            {
+              "name": "comment_id",
+              "in": "path",
+              "required": true,
+              "schema": { "type": "string" }
+            }
+          ],
+          "responses": {
+            "204": { "description": "Comment deleted" }
+          }
+        }
+      },
+      "/reminders": {
+        "get": {
+          "operationId": "listReminders",
+          "summary": "List all reminders",
+          "responses": {
+            "200": { "description": "A list of reminders" }
+          }
+        },
+        "post": {
+          "operationId": "createReminder",
+          "summary": "Create a reminder for a task",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "task_id": { "type": "string" },
+                    "due_string": { "type": "string" }
+                  },
+                  "required": ["task_id", "due_string"]
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": { "description": "Reminder created" }
+          }
+        }
+      },
+      "/reminders/{reminder_id}": {
+        "delete": {
+          "operationId": "deleteReminder",
+          "summary": "Delete a reminder",
+          "parameters": [
+            {
+              "name": "reminder_id",
+              "in": "path",
+              "required": true,
+              "schema": { "type": "string" }
+            }
+          ],
+          "responses": {
+            "204": { "description": "Reminder deleted" }
+          }
+        }
+      },
+      "/collaborators": {
+        "get": {
+          "operationId": "listCollaborators",
+          "summary": "List collaborators on shared projects",
+          "responses": {
+            "200": { "description": "A list of collaborators" }
+          }
+        }
+      }
+    },
+    "components": {
+      "securitySchemes": {
+        "ApiKeyAuth": {
+          "type": "apiKey",
+          "in": "header",
+          "name": "X-API-KEY"
+        }
+      },
+      "schemas": {}
+    },
+    "security": [
+      {
+        "ApiKeyAuth": []
+      }
+    ]
+  }
   
