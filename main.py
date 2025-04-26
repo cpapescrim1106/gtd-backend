@@ -299,6 +299,23 @@ def manage_collaborators():
     path = f"/projects/{pid}/collaborators" if pid else "/collaborators"
     return proxy("GET", path)
 
+# Debug endpoint
+@app.route("/debug/labels", methods=["GET"])
+def debug_labels():
+    headers = get_todoist_headers()
+    if headers is None:
+        return jsonify({"error": "Missing X-API-KEY header"}), 401
+    url = "https://api.todoist.com/rest/v2/labels"
+    try:
+        resp = requests.get(url, headers=headers)
+        print(f"Debug labels response: Status {resp.status_code}, Body: {resp.text}")
+        return jsonify({
+            "status": resp.status_code,
+            "body": resp.json() if resp.status_code == 200 else resp.text
+        }), 200
+    except requests.exceptions.RequestException as e:
+        print(f"Debug labels error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
