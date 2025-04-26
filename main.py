@@ -4,6 +4,12 @@ import requests
 
 app = Flask(__name__)
 
+from flask import send_file
+
+@app.route("/openapi.json")
+def serve_openapi():
+    return send_file("openapi.json")
+
 # Base URL for Todoist’s REST v2 API
 TODOIST_API_BASE = "https://api.todoist.com/rest/v2"
 
