@@ -1,190 +1,305 @@
-from flask import Flask, request, jsonify
-import os, requests
+import os
+from flask import Flask, request, jsonify, Response
+import requests
 
 app = Flask(__name__)
-TODOIST_TOKEN = os.getenv("TODOIST_TOKEN")
-API_KEY = os.getenv("API_KEY")  # API key for securing endpoints
-BASE_URL = "https://api.todoist.com/rest/v2"
-HEADERS = lambda: {"Authorization": f"Bearer {TODOIST_TOKEN}"}
-JSON_HEADERS = lambda: {**HEADERS(), "Content-Type": "application/json"}
 
-# Simple API key check for all non-health routes
-@app.before_request
-def require_api_key():
-    # Allow health-check and OpenAPI doc without auth
-    if request.path in ('/', '/openapi.json') and request.method == 'GET':
+# Base URL for Todoist’s REST v2 API
+TODOIST_API_BASE = "https://api.todoist.com/rest/v2"
+
+def get_todoist_headers():
+    """Extract X-API-KEY from incoming request and build Authorization header."""
+    api_key = request.headers.get("X-API-KEY")
+    if not api_key:
         return None
-    if not API_KEY:
-        return jsonify({"error": "Server misconfiguration: API_KEY not set"}), 500
-    client_key = request.headers.get("X-API-KEY")
-    if client_key != API_KEY:
-        return jsonify({"error": "Unauthorized"}), 401
+    return {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
 
+def proxy(method, path, params=None, json_data=None):
+    """
+    Forward a request to Todoist, then return its response.
+    Handles JSON vs. no-content automatically.
+    """
+    headers = get_todoist_headers()
+    if headers is None:
+        return jsonify({"error": "Missing X-API-KEY header"}), 401
 
-# Health Check
-@app.route("/", methods=["GET"])
-def home():
-    return "✅ GTD Backend Running!"
+    url = TODOIST_API_BASE + path
+    resp = requests.request(method, url, headers=headers, params=params, json=json_data)
 
-# ----- TASKS -----
-@app.route("/tasks", methods=["GET"])
-def get_tasks():
-    resp = requests.get(f"{BASE_URL}/tasks", headers=HEADERS(), params=request.args)
-    return jsonify(resp.json()), resp.status_code
+    # Try to decode JSON; if none, handle empty or text responses
+    try:
+        body = resp.json()
+        return jsonify(body), resp.status_code
+    except ValueError:
+        if resp.status_code == 204:
+            return ("", 204)
+        return Response(resp.text, status=resp.status_code, content_type=resp.headers.get("Content-Type", "text/plain"))
 
-@app.route("/tasks/<task_id>", methods=["GET"])
-def get_task(task_id):
-    resp = requests.get(f"{BASE_URL}/tasks/{task_id}", headers=HEADERS())
-    return jsonify(resp.json()), resp.status_code
+# ─── Tasks ─────────────────────────────────────────────────────────────────────
 
-@app.route("/tasks", methods=["POST"])
-def create_task():
-    resp = requests.post(f"{BASE_URL}/tasks", headers=JSON_HEADERS(), json=request.json)
-    return jsonify(resp.json()), resp.status_code
+@app.route("/tasks/manage", methods=["POST"])
+def manage_tasks():
+    data = request.get_json(force=True)
+    action = data.get("action")
 
-@app.route("/tasks/<task_id>", methods=["POST"])
-def update_task(task_id):
-    resp = requests.post(f"{BASE_URL}/tasks/{task_id}", headers=JSON_HEADERS(), json=request.json)
-    return jsonify(resp.json()), resp.status_code
+    if action == "list":
+        params = {}
+        for key in ("project_id", "label_id", "filter"):
+            if data.get(key) is not None:
+                params[key] = data[key]
+        return proxy("GET", "/tasks", params=params)
 
-@app.route("/tasks/<task_id>/close", methods=["POST"])
-def close_task(task_id):
-    resp = requests.post(f"{BASE_URL}/tasks/{task_id}/close", headers=HEADERS())
-    return ("", resp.status_code)
+    if action == "get":
+        tid = data.get("task_id")
+        if not tid:
+            return jsonify({"error": "task_id is required"}), 400
+        return proxy("GET", f"/tasks/{tid}")
 
-@app.route("/tasks/<task_id>/reopen", methods=["POST"])
-def reopen_task(task_id):
-    resp = requests.post(f"{BASE_URL}/tasks/{task_id}/reopen", headers=HEADERS())
-    return ("", resp.status_code)
+    if action == "create":
+        payload = {k: data[k] for k in ("content", "project_id", "section_id", "due_string", "priority", "label_ids") if k in data}
+        return proxy("POST", "/tasks", json_data=payload)
 
-# ----- PROJECTS -----
-@app.route("/projects", methods=["GET"])
-def list_projects():
-    resp = requests.get(f"{BASE_URL}/projects", headers=HEADERS())
-    return jsonify(resp.json()), resp.status_code
+    if action == "update":
+        tid = data.get("task_id")
+        if not tid:
+            return jsonify({"error": "task_id is required"}), 400
+        payload = {k: data[k] for k in ("content", "due_string", "priority", "label_ids") if k in data}
+        return proxy("POST", f"/tasks/{tid}", json_data=payload)
 
-@app.route("/projects/<project_id>", methods=["GET"])
-def get_project(project_id):
-    resp = requests.get(f"{BASE_URL}/projects/{project_id}", headers=HEADERS())
-    return jsonify(resp.json()), resp.status_code
+    if action == "delete":
+        tid = data.get("task_id")
+        if not tid:
+            return jsonify({"error": "task_id is required"}), 400
+        return proxy("DELETE", f"/tasks/{tid}")
 
-@app.route("/projects", methods=["POST"])
-def create_project():
-    resp = requests.post(f"{BASE_URL}/projects", headers=JSON_HEADERS(), json=request.json)
-    return jsonify(resp.json()), resp.status_code
+    if action == "move":
+        tid = data.get("task_id")
+        if not tid:
+            return jsonify({"error": "task_id is required"}), 400
+        payload = {}
+        if "project_id" in data:
+            payload["project_id"] = data["project_id"]
+        if "section_id" in data:
+            payload["section_id"] = data["section_id"]
+        return proxy("POST", f"/tasks/{tid}/move", json_data=payload)
 
-@app.route("/projects/<project_id>", methods=["POST"])
-def update_project(project_id):
-    resp = requests.post(f"{BASE_URL}/projects/{project_id}", headers=JSON_HEADERS(), json=request.json)
-    return jsonify(resp.json()), resp.status_code
+    if action == "status":
+        tid = data.get("task_id")
+        status = data.get("status")
+        if not tid or status not in ("closed", "open"):
+            return jsonify({"error": "task_id and status ('closed'|'open') are required"}), 400
+        endpoint = "close" if status == "closed" else "reopen"
+        return proxy("POST", f"/tasks/{tid}/{endpoint}")
 
-@app.route("/projects/<project_id>", methods=["DELETE"])
-def delete_project(project_id):
-    resp = requests.delete(f"{BASE_URL}/projects/{project_id}", headers=HEADERS())
-    return ("", resp.status_code)
+    return jsonify({"error": f"Unknown action '{action}'"}), 400
 
-# ----- SECTIONS -----
-@app.route("/sections", methods=["GET"])
-def list_sections():
-    resp = requests.get(f"{BASE_URL}/sections", headers=HEADERS(), params=request.args)
-    return jsonify(resp.json()), resp.status_code
+# ─── Projects ──────────────────────────────────────────────────────────────────
 
-@app.route("/sections", methods=["POST"])
-def create_section():
-    resp = requests.post(f"{BASE_URL}/sections", headers=JSON_HEADERS(), json=request.json)
-    return jsonify(resp.json()), resp.status_code
+@app.route("/projects/manage", methods=["POST"])
+def manage_projects():
+    data = request.get_json(force=True)
+    action = data.get("action")
 
-@app.route("/sections/<section_id>", methods=["POST"])
-def update_section(section_id):
-    resp = requests.post(f"{BASE_URL}/sections/{section_id}", headers=JSON_HEADERS(), json=request.json)
-    return jsonify(resp.json()), resp.status_code
+    if action == "list":
+        return proxy("GET", "/projects")
 
-@app.route("/sections/<section_id>", methods=["DELETE"])
-def delete_section(section_id):
-    resp = requests.delete(f"{BASE_URL}/sections/{section_id}", headers=HEADERS())
-    return ("", resp.status_code)
+    if action == "get":
+        pid = data.get("project_id")
+        if not pid:
+            return jsonify({"error": "project_id is required"}), 400
+        return proxy("GET", f"/projects/{pid}")
 
-# ----- LABELS -----
-@app.route("/labels", methods=["GET"])
-def list_labels():
-    resp = requests.get(f"{BASE_URL}/labels", headers=HEADERS())
-    return jsonify(resp.json()), resp.status_code
+    if action == "create":
+        payload = {k: data[k] for k in ("name", "color", "parent_id", "is_shared", "is_favorite") if k in data}
+        return proxy("POST", "/projects", json_data=payload)
 
-@app.route("/labels/<label_id>", methods=["GET"])
-def get_label(label_id):
-    resp = requests.get(f"{BASE_URL}/labels/{label_id}", headers=HEADERS())
-    return jsonify(resp.json()), resp.status_code
+    if action == "update":
+        pid = data.get("project_id")
+        if not pid:
+            return jsonify({"error": "project_id is required"}), 400
+        payload = {k: data[k] for k in ("name", "color", "order", "is_shared", "is_favorite") if k in data}
+        return proxy("POST", f"/projects/{pid}", json_data=payload)
 
-@app.route("/labels", methods=["POST"])
-def create_label():
-    resp = requests.post(f"{BASE_URL}/labels", headers=JSON_HEADERS(), json=request.json)
-    return jsonify(resp.json()), resp.status_code
+    if action == "delete":
+        pid = data.get("project_id")
+        if not pid:
+            return jsonify({"error": "project_id is required"}), 400
+        return proxy("DELETE", f"/projects/{pid}")
 
-@app.route("/labels/<label_id>", methods=["POST"])
-def update_label(label_id):
-    resp = requests.post(f"{BASE_URL}/labels/{label_id}", headers=JSON_HEADERS(), json=request.json)
-    return jsonify(resp.json()), resp.status_code
+    if action == "state":
+        pid = data.get("project_id")
+        state = data.get("state")
+        if not pid or state not in ("archived", "active"):
+            return jsonify({"error": "project_id and state ('archived'|'active') are required"}), 400
+        endpoint = "archive" if state == "archived" else "unarchive"
+        return proxy("POST", f"/projects/{pid}/{endpoint}")
 
-@app.route("/labels/<label_id>", methods=["DELETE"])
-def delete_label(label_id):
-    resp = requests.delete(f"{BASE_URL}/labels/{label_id}", headers=HEADERS())
-    return ("", resp.status_code)
+    if action == "collaborators":
+        pid = data.get("project_id")
+        # if no project_id, fall back to /collaborators
+        path = f"/projects/{pid}/collaborators" if pid else "/collaborators"
+        return proxy("GET", path)
 
-# ----- COMMENTS (NOTES) -----
-@app.route("/comments", methods=["GET"])
-def list_comments():
-    params = {}
-    if request.args.get("task_id"): params["task_id"] = request.args.get("task_id")
-    if request.args.get("project_id"): params["project_id"] = request.args.get("project_id")
-    resp = requests.get(f"{BASE_URL}/comments", headers=HEADERS(), params=params)
-    return jsonify(resp.json()), resp.status_code
+    return jsonify({"error": f"Unknown action '{action}'"}), 400
 
-@app.route("/comments", methods=["POST"])
-def create_comment():
-    data = request.json
-    payload = {"content": data.get("content")}
-    if data.get("task_id"): payload["task_id"] = data.get("task_id")
-    if data.get("project_id"): payload["project_id"] = data.get("project_id")
-    resp = requests.post(f"{BASE_URL}/comments", headers=JSON_HEADERS(), json=payload)
-    return jsonify(resp.json()), resp.status_code
+# ─── Sections ─────────────────────────────────────────────────────────────────
 
-@app.route("/comments/<comment_id>", methods=["POST"])
-def update_comment(comment_id):
-    data = request.json
-    resp = requests.post(f"{BASE_URL}/comments/{comment_id}", headers=JSON_HEADERS(), json={"content": data.get("content")})
-    return jsonify(resp.json()), resp.status_code
+@app.route("/sections/manage", methods=["POST"])
+def manage_sections():
+    data = request.get_json(force=True)
+    action = data.get("action")
 
-@app.route("/comments/<comment_id>", methods=["DELETE"])
-def delete_comment(comment_id):
-    resp = requests.delete(f"{BASE_URL}/comments/{comment_id}", headers=HEADERS())
-    return ("", resp.status_code)
+    if action == "list":
+        params = {}
+        if data.get("project_id"):
+            params["project_id"] = data["project_id"]
+        return proxy("GET", "/sections", params=params)
 
-# ----- REMINDERS -----
-@app.route("/reminders", methods=["GET"])
-def list_reminders():
-    resp = requests.get(f"{BASE_URL}/reminders", headers=HEADERS())
-    return jsonify(resp.json()), resp.status_code
+    if action == "get":
+        sid = data.get("section_id")
+        if not sid:
+            return jsonify({"error": "section_id is required"}), 400
+        return proxy("GET", f"/sections/{sid}")
 
-@app.route("/reminders", methods=["POST"])
-def create_reminder():
-    resp = requests.post(f"{BASE_URL}/reminders", headers=JSON_HEADERS(), json=request.json)
-    return jsonify(resp.json()), resp.status_code
+    if action == "create":
+        payload = {"project_id": data.get("project_id"), "name": data.get("name")}
+        return proxy("POST", "/sections", json_data=payload)
 
-@app.route("/reminders/<reminder_id>", methods=["DELETE"])
-def delete_reminder(reminder_id):
-    resp = requests.delete(f"{BASE_URL}/reminders/{reminder_id}", headers=HEADERS())
-    return ("", resp.status_code)
+    if action == "update":
+        sid = data.get("section_id")
+        if not sid:
+            return jsonify({"error": "section_id is required"}), 400
+        payload = {k: data[k] for k in ("name", "order") if k in data}
+        return proxy("POST", f"/sections/{sid}", json_data=payload)
 
-# ----- COLLABORATORS -----
-@app.route("/collaborators", methods=["GET"])
-def list_collaborators():
-    resp = requests.get(f"{BASE_URL}/collaborators", headers=HEADERS())
-    return jsonify(resp.json()), resp.status_code
+    if action == "delete":
+        sid = data.get("section_id")
+        if not sid:
+            return jsonify({"error": "section_id is required"}), 400
+        return proxy("DELETE", f"/sections/{sid}")
+
+    return jsonify({"error": f"Unknown action '{action}'"}), 400
+
+# ─── Labels ───────────────────────────────────────────────────────────────────
+
+@app.route("/labels/manage", methods=["POST"])
+def manage_labels():
+    data = request.get_json(force=True)
+    action = data.get("action")
+
+    # personal
+    if action == "list":
+        return proxy("GET", "/labels")
+    if action == "get":
+        lid = data.get("label_id")
+        if not lid:
+            return jsonify({"error": "label_id is required"}), 400
+        return proxy("GET", f"/labels/{lid}")
+    if action == "create":
+        payload = {k: data[k] for k in ("name", "color", "order", "is_favorite") if k in data}
+        return proxy("POST", "/labels", json_data=payload)
+    if action == "update":
+        lid = data.get("label_id")
+        if not lid:
+            return jsonify({"error": "label_id is required"}), 400
+        payload = {k: data[k] for k in ("name", "color", "order", "is_favorite") if k in data}
+        return proxy("POST", f"/labels/{lid}", json_data=payload)
+    if action == "delete":
+        lid = data.get("label_id")
+        if not lid:
+            return jsonify({"error": "label_id is required"}), 400
+        return proxy("DELETE", f"/labels/{lid}")
+
+    # shared
+    if action == "list_shared":
+        return proxy("GET", "/labels/shared")
+    if action == "rename_shared":
+        name = data.get("name"); new = data.get("new_name")
+        return proxy("POST", "/labels/shared/rename", json_data={"name": name, "new_name": new})
+    if action == "remove_shared":
+        name = data.get("name")
+        return proxy("POST", "/labels/shared/remove", json_data={"name": name})
+
+    return jsonify({"error": f"Unknown action '{action}'"}), 400
+
+# ─── Comments ─────────────────────────────────────────────────────────────────
+
+@app.route("/comments/manage", methods=["POST"])
+def manage_comments():
+    data = request.get_json(force=True)
+    action = data.get("action")
+
+    if action == "list":
+        params = {}
+        for key in ("task_id", "project_id"):
+            if data.get(key) is not None:
+                params[key] = data[key]
+        return proxy("GET", "/comments", params=params)
+
+    if action == "get":
+        cid = data.get("comment_id")
+        if not cid:
+            return jsonify({"error": "comment_id is required"}), 400
+        return proxy("GET", f"/comments/{cid}")
+
+    if action == "create":
+        payload = {k: data[k] for k in ("content", "task_id", "project_id") if k in data}
+        return proxy("POST", "/comments", json_data=payload)
+
+    if action == "update":
+        cid = data.get("comment_id")
+        if not cid:
+            return jsonify({"error": "comment_id is required"}), 400
+        return proxy("POST", f"/comments/{cid}", json_data={"content": data.get("content")})
+
+    if action == "delete":
+        cid = data.get("comment_id")
+        if not cid:
+            return jsonify({"error": "comment_id is required"}), 400
+        return proxy("DELETE", f"/comments/{cid}")
+
+    return jsonify({"error": f"Unknown action '{action}'"}), 400
+
+# ─── Reminders ────────────────────────────────────────────────────────────────
+
+@app.route("/reminders/manage", methods=["POST"])
+def manage_reminders():
+    data = request.get_json(force=True)
+    action = data.get("action")
+
+    if action == "list":
+        return proxy("GET", "/reminders")
+
+    if action == "create":
+        payload = {k: data[k] for k in ("task_id", "due_string") if k in data}
+        return proxy("POST", "/reminders", json_data=payload)
+
+    if action == "delete":
+        rid = data.get("reminder_id")
+        if not rid:
+            return jsonify({"error": "reminder_id is required"}), 400
+        return proxy("DELETE", f"/reminders/{rid}")
+
+    return jsonify({"error": f"Unknown action '{action}'"}), 400
+
+# ─── Collaborators ─────────────────────────────────────────────────────────────
+
+@app.route("/collaborators/manage", methods=["POST"])
+def manage_collaborators():
+    data = request.get_json(force=True)
+    # only 'list' action supported
+    if data.get("action") != "list":
+        return jsonify({"error": "Unknown action, only 'list' is supported"}), 400
+
+    pid = data.get("project_id")
+    path = f"/projects/{pid}/collaborators" if pid else "/collaborators"
+    return proxy("GET", path)
+
+# ─── Bootstrapping ────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
-
-@app.route("/openapi.json")
-def openapi_spec():
-    with open("openapi.json") as f:
-        return f.read(), 200, {"Content-Type": "application/json"}
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
