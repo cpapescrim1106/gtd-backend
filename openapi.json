@@ -40,7 +40,7 @@
                   },
                   "project_id": {
                     "type": "string",
-                    "description": "Optional for create/list/move. Used to specify the project."
+                    "description": "Optional for create/list/move. Used to specify the project. Use filters for more specific listing."
                   },
                   "section_id": {
                     "type": "string",
@@ -60,7 +60,6 @@
                     "maximum": 4,
                     "description": "Optional for create/update. Task priority (1=p4, 4=p1)."
                   },
-                  // --- CORRECTED SECTION START ---
                   "labels": {
                     "type": "array",
                     "items": {
@@ -68,7 +67,6 @@
                     },
                     "description": "Optional for create/update. Array of label names (strings) to attach (e.g., [\"email\", \"work\"])"
                   },
-                  // --- CORRECTED SECTION END ---
                   "status": {
                     "type": "string",
                     "enum": [
@@ -76,7 +74,15 @@
                       "open"
                     ],
                     "description": "Required for status action. Use 'closed' to complete, 'open' to reopen."
-                  }
+                  },
+                   "filter": {
+                     "type": "string",
+                     "description": "Optional for 'list' action. Todoist filter query string (e.g., 'today', 'p1 & #Work', '@waiting_for'). Helps avoid ResponseTooLarge errors."
+                   },
+                   "label_id": {
+                     "type": "string",
+                     "description": "Optional for 'list' action. Filter tasks by a specific label ID (Note: Todoist often uses label names for filtering)."
+                   }
                 },
                 "required": [
                   "action"
@@ -93,10 +99,13 @@
             "description": "No content response for successful delete/status actions."
           },
           "400": {
-            "description": "Bad Request - Invalid input or parameters."
+            "description": "Bad Request - Invalid input, missing required fields, or filter needed for large lists."
           },
           "404": {
             "description": "Not Found - Task, project, or section ID does not exist."
+          },
+          "413": {
+             "description": "Payload Too Large / Response Too Large - Consider using filters for 'list' action."
           }
         }
       }
@@ -104,7 +113,7 @@
     "/projects/manage": {
       "post": {
         "operationId": "manageProjects",
-        "summary": "List, get, create, update, delete, archive/unarchive or list collaborators of projects",
+        "summary": "List, get, create, update, delete, or list collaborators of projects",
         "requestBody": {
           "required": true,
           "content": {
@@ -120,34 +129,28 @@
                       "create",
                       "update",
                       "delete",
-                      "state",
                       "collaborators"
                     ]
                   },
                   "project_id": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Required for get, update, delete, collaborators actions."
                   },
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Required for create, optional for update."
                   },
                   "color": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Optional for create/update."
                   },
                   "parent_id": {
-                    "type": "string"
-                  },
-                  "is_shared": {
-                    "type": "boolean"
+                    "type": "string",
+                    "description": "Optional for create."
                   },
                   "is_favorite": {
-                    "type": "boolean"
-                  },
-                  "state": {
-                    "type": "string",
-                    "enum": [
-                      "archived",
-                      "active"
-                    ]
+                    "type": "boolean",
+                    "description": "Optional for create/update."
                   }
                 },
                 "required": [
@@ -159,10 +162,10 @@
         },
         "responses": {
           "200": {
-            "description": "JSON response for list/get/create/update/collaborators"
+            "description": "JSON response for list/get/create/update/collaborators actions."
           },
           "204": {
-            "description": "No content for delete/state actions"
+            "description": "No content response for successful delete action."
           }
         }
       }
@@ -189,16 +192,20 @@
                     ]
                   },
                   "section_id": {
-                    "type": "string"
+                    "type": "string",
+                     "description": "Required for get, update, delete actions."
                   },
                   "project_id": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Required for create, optional for list actions."
                   },
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                     "description": "Required for create, optional for update."
                   },
                   "order": {
-                    "type": "integer"
+                    "type": "integer",
+                     "description": "Optional for create/update."
                   }
                 },
                 "required": [
@@ -210,10 +217,10 @@
         },
         "responses": {
           "200": {
-            "description": "JSON response for list/get/create/update"
+            "description": "JSON response for list/get/create/update actions."
           },
           "204": {
-            "description": "No content for delete actions"
+            "description": "No content response for successful delete action."
           }
         }
       }
@@ -221,7 +228,7 @@
     "/labels/manage": {
       "post": {
         "operationId": "manageLabels",
-        "summary": "List, get, create, update, delete personal labels or manage shared labels",
+        "summary": "List, get, create, update, delete personal labels",
         "requestBody": {
           "required": true,
           "content": {
@@ -236,29 +243,28 @@
                       "get",
                       "create",
                       "update",
-                      "delete",
-                      "list_shared",
-                      "rename_shared",
-                      "remove_shared"
+                      "delete"
                     ]
                   },
                   "label_id": {
-                    "type": "string"
+                    "type": "string",
+                     "description": "Required for get, update, delete actions (usually a string ID)."
                   },
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                     "description": "Required for create, optional for update."
                   },
                   "color": {
-                    "type": "string"
+                    "type": "string",
+                     "description": "Optional for create/update."
                   },
                   "order": {
-                    "type": "integer"
+                    "type": "integer",
+                     "description": "Optional for create/update."
                   },
                   "is_favorite": {
-                    "type": "boolean"
-                  },
-                  "new_name": {
-                    "type": "string"
+                    "type": "boolean",
+                     "description": "Optional for create/update."
                   }
                 },
                 "required": [
@@ -270,10 +276,10 @@
         },
         "responses": {
           "200": {
-            "description": "JSON response for list/get/create/update/shared-list/shared-rename"
+            "description": "JSON response for list/get/create/update actions."
           },
           "204": {
-            "description": "No content for delete/shared-remove actions"
+            "description": "No content response for successful delete action."
           }
         }
       }
@@ -300,62 +306,20 @@
                     ]
                   },
                   "comment_id": {
-                    "type": "string"
+                    "type": "string",
+                     "description": "Required for get, update, delete actions."
                   },
                   "task_id": {
-                    "type": "string"
+                    "type": "string",
+                     "description": "Required for create, required for list if project_id not provided."
                   },
                   "project_id": {
-                    "type": "string"
+                    "type": "string",
+                     "description": "Optional for create, required for list if task_id not provided."
                   },
                   "content": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "action"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "JSON response for list/get/create/update"
-          },
-          "204": {
-            "description": "No content for delete actions"
-          }
-        }
-      }
-    },
-    "/reminders/manage": {
-      "post": {
-        "operationId": "manageReminders",
-        "summary": "List, create or delete reminders",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "action": {
                     "type": "string",
-                    "enum": [
-                      "list",
-                      "create",
-                      "delete"
-                    ]
-                  },
-                  "reminder_id": {
-                    "type": "string"
-                  },
-                  "task_id": {
-                    "type": "string"
-                  },
-                  "due_string": {
-                    "type": "string"
+                     "description": "Required for create/update."
                   }
                 },
                 "required": [
@@ -367,10 +331,10 @@
         },
         "responses": {
           "200": {
-            "description": "JSON response for list/create"
+            "description": "JSON response for list/get/create/update actions."
           },
           "204": {
-            "description": "No content for delete actions"
+            "description": "No content response for successful delete action."
           }
         }
       }
@@ -390,14 +354,17 @@
                     "type": "string",
                     "enum": [
                       "list"
-                    ]
+                    ],
+                     "description": "Only 'list' is supported."
                   },
                   "project_id": {
-                    "type": "string"
+                    "type": "string",
+                     "description": "Required for list action."
                   }
                 },
                 "required": [
-                  "action"
+                  "action",
+                  "project_id"
                 ]
               }
             }
@@ -405,7 +372,7 @@
         },
         "responses": {
           "200": {
-            "description": "JSON response for list collaborators"
+            "description": "JSON response for list collaborators."
           }
         }
       }
