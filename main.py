@@ -8,14 +8,15 @@ app = Flask(__name__)
 TODOIST_API_BASE = "https://api.todoist.com/rest/v2"
 
 def get_todoist_headers():
-    """Extract X-API-KEY from incoming request and build Authorization header."""
     api_key = request.headers.get("X-API-KEY")
     if not api_key:
         return None
-    return {
+    headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
+    print(f"Headers sent to Todoist: {headers}")  # Log for debugging
+    return headers
 
 def proxy(method, path, params=None, json_data=None):
     """
