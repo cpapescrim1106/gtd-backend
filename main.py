@@ -28,9 +28,10 @@ def proxy(method, path, params=None, json_data=None):
         return jsonify({"error": "Missing X-API-KEY header"}), 401
 
     url = TODOIST_API_BASE + path
+    print(f"Sending to Todoist: {method} {url}, Params: {params}, JSON: {json_data}")  # Log request
     resp = requests.request(method, url, headers=headers, params=params, json=json_data)
+    print(f"Todoist response: Status {resp.status_code}, Body: {resp.text}")  # Log response
 
-    # Try to decode JSON; if none, handle empty or text responses
     try:
         body = resp.json()
         return jsonify(body), resp.status_code
@@ -45,6 +46,7 @@ def proxy(method, path, params=None, json_data=None):
 def manage_tasks():
     data = request.get_json(force=True)
     action = data.get("action")
+    print(f"Tasks manage request: {data}")  # Log incoming request
 
     if action == "list":
         params = {}
@@ -103,6 +105,7 @@ def manage_tasks():
 def manage_projects():
     data = request.get_json(force=True)
     action = data.get("action")
+    print(f"Projects manage request: {data}")  # Log incoming request
 
     if action == "list":
         return proxy("GET", "/projects")
@@ -140,7 +143,6 @@ def manage_projects():
 
     if action == "collaborators":
         pid = data.get("project_id")
-        # if no project_id, fall back to /collaborators
         path = f"/projects/{pid}/collaborators" if pid else "/collaborators"
         return proxy("GET", path)
 
@@ -152,6 +154,7 @@ def manage_projects():
 def manage_sections():
     data = request.get_json(force=True)
     action = data.get("action")
+    print(f"Sections manage request: {data}")  # Log incoming request
 
     if action == "list":
         params = {}
@@ -190,8 +193,8 @@ def manage_sections():
 def manage_labels():
     data = request.get_json(force=True)
     action = data.get("action")
+    print(f"Labels manage request: {data}")  # Log incoming request
 
-    # personal
     if action == "list":
         return proxy("GET", "/labels")
     if action == "get":
@@ -214,11 +217,11 @@ def manage_labels():
             return jsonify({"error": "label_id is required"}), 400
         return proxy("DELETE", f"/labels/{lid}")
 
-    # shared
     if action == "list_shared":
         return proxy("GET", "/labels/shared")
     if action == "rename_shared":
-        name = data.get("name"); new = data.get("new_name")
+        name = data.get("name")
+        new = data.get("new_name")
         return proxy("POST", "/labels/shared/rename", json_data={"name": name, "new_name": new})
     if action == "remove_shared":
         name = data.get("name")
@@ -232,6 +235,7 @@ def manage_labels():
 def manage_comments():
     data = request.get_json(force=True)
     action = data.get("action")
+    print(f"Comments manage request: {data}")  # Log incoming request
 
     if action == "list":
         params = {}
@@ -270,6 +274,7 @@ def manage_comments():
 def manage_reminders():
     data = request.get_json(force=True)
     action = data.get("action")
+    print(f"Reminders manage request: {data}")  # Log incoming request
 
     if action == "list":
         return proxy("GET", "/reminders")
@@ -291,7 +296,7 @@ def manage_reminders():
 @app.route("/collaborators/manage", methods=["POST"])
 def manage_collaborators():
     data = request.get_json(force=True)
-    # only 'list' action supported
+    print(f"Collaborators manage request: {data}")  # Log incoming request
     if data.get("action") != "list":
         return jsonify({"error": "Unknown action, only 'list' is supported"}), 400
 
