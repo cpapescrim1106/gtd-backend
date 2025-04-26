@@ -16,9 +16,21 @@ TODOIST_API_BASE = "https://api.todoist.com/rest/v2"
 def get_todoist_headers():
     api_key = request.headers.get("X-API-KEY")
     if not api_key:
+        print("Missing X-API-KEY header")
+        return None
+    expected_api_key = os.getenv("API_KEY")
+    if not expected_api_key:
+        print("API_KEY environment variable not set")
+        return None
+    if api_key != expected_api_key:
+        print(f"Invalid X-API-KEY: {api_key}")
+        return None
+    todoist_token = os.getenv("TODOIST_API_TOKEN")
+    if not todoist_token:
+        print("TODOIST_API_TOKEN environment variable not set")
         return None
     headers = {
-        "Authorization": f"Bearer {api_key}",
+        "Authorization": f"Bearer {todoist_token}",
         "Content-Type": "application/json"
     }
     print(f"Headers sent to Todoist: {headers}")
