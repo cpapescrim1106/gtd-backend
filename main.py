@@ -15,38 +15,35 @@ def get_todoist_headers():
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
     }
-    print(f"Headers sent to Todoist: {headers}")  # Log for debugging
+    print(f"Headers sent to Todoist: {headers}")
     return headers
 
 def proxy(method, path, params=None, json_data=None):
-    """
-    Forward a request to Todoist, then return its response.
-    Handles JSON vs. no-content automatically.
-    """
     headers = get_todoist_headers()
     if headers is None:
         return jsonify({"error": "Missing X-API-KEY header"}), 401
 
     url = TODOIST_API_BASE + path
-    print(f"Sending to Todoist: {method} {url}, Params: {params}, JSON: {json_data}")  # Log request
-    resp = requests.request(method, url, headers=headers, params=params, json=json_data)
-    print(f"Todoist response: Status {resp.status_code}, Body: {resp.text}")  # Log response
-
+    print(f"Sending to Todoist: {method} {url}, Params: {params}, JSON: {json_data}")
     try:
-        body = resp.json()
-        return jsonify(body), resp.status_code
-    except ValueError:
-        if resp.status_code == 204:
-            return ("", 204)
-        return Response(resp.text, status=resp.status_code, content_type=resp.headers.get("Content-Type", "text/plain"))
-
-# ─── Tasks ─────────────────────────────────────────────────────────────────────
+        resp = requests.request(method, url, headers=headers, params=params, json=json_data)
+        print(f"Todoist response: Status {resp.status_code}, Body: {resp.text}")
+        try:
+            body = resp.json()
+            return jsonify(body), resp.status_code
+        except ValueError:
+            if resp.status_code == 204:
+                return ("", 204)
+            return Response(resp.text, status=resp.status_code, content_type=resp.headers.get("Content-Type", "text/plain"))
+    except requests.exceptions.RequestException as e:
+        print(f"Request error: {str(e)}")
+        return jsonify({"error": f"Request failed: {str(e)}"}), 500
 
 @app.route("/tasks/manage", methods=["POST"])
 def manage_tasks():
     data = request.get_json(force=True)
     action = data.get("action")
-    print(f"Tasks manage request: {data}")  # Log incoming request
+    print(f"Tasks manage request: {data}")
 
     if action == "list":
         params = {}
@@ -62,14 +59,24 @@ def manage_tasks():
         return proxy("GET", f"/tasks/{tid}")
 
     if action == "create":
-        payload = {k: data[k] for k in ("content", "project_id", "section_id", "due_string", "priority", "label_ids") if k in data}
+        payload = {k: data[k] for k in ("content", "project_id", "section_id", "due_string", "priority") if k in data}
+        if "label_ids" in data:
+            try:
+                payload["label_ids"] = [int(lid) for lid in data["label_ids"]]
+            except (ValueError, TypeError):
+                return jsonify({"error": "label_ids must be a list of integers"}), 400
         return proxy("POST", "/tasks", json_data=payload)
 
     if action == "update":
         tid = data.get("task_id")
         if not tid:
             return jsonify({"error": "task_id is required"}), 400
-        payload = {k: data[k] for k in ("content", "due_string", "priority", "label_ids") if k in data}
+        payload = {k: data[k] for k in ("content", "due_string", "priority") if k in data}
+        if "label_ids" in data:
+            try:
+                payload["label_ids"] = [int(lid) for lid in data["label_ids"]]
+            except (ValueError, TypeError):
+                return jsonify({"error": "label_ids must be a list of integers"}), 400
         return proxy("POST", f"/tasks/{tid}", json_data=payload)
 
     if action == "delete":
@@ -99,13 +106,11 @@ def manage_tasks():
 
     return jsonify({"error": f"Unknown action '{action}'"}), 400
 
-# ─── Projects ──────────────────────────────────────────────────────────────────
-
 @app.route("/projects/manage", methods=["POST"])
 def manage_projects():
     data = request.get_json(force=True)
     action = data.get("action")
-    print(f"Projects manage request: {data}")  # Log incoming request
+    print(f"Projects manage request: {data}")
 
     if action == "list":
         return proxy("GET", "/projects")
@@ -148,13 +153,11 @@ def manage_projects():
 
     return jsonify({"error": f"Unknown action '{action}'"}), 400
 
-# ─── Sections ─────────────────────────────────────────────────────────────────
-
 @app.route("/sections/manage", methods=["POST"])
 def manage_sections():
     data = request.get_json(force=True)
     action = data.get("action")
-    print(f"Sections manage request: {data}")  # Log incoming request
+    print(f"Sections manage request: {data}")
 
     if action == "list":
         params = {}
@@ -187,13 +190,11 @@ def manage_sections():
 
     return jsonify({"error": f"Unknown action '{action}'"}), 400
 
-# ─── Labels ───────────────────────────────────────────────────────────────────
-
 @app.route("/labels/manage", methods=["POST"])
 def manage_labels():
     data = request.get_json(force=True)
     action = data.get("action")
-    print(f"Labels manage request: {data}")  # Log incoming request
+    print(f"Labels manage request: {data}")
 
     if action == "list":
         return proxy("GET", "/labels")
@@ -229,13 +230,11 @@ def manage_labels():
 
     return jsonify({"error": f"Unknown action '{action}'"}), 400
 
-# ─── Comments ─────────────────────────────────────────────────────────────────
-
 @app.route("/comments/manage", methods=["POST"])
 def manage_comments():
     data = request.get_json(force=True)
     action = data.get("action")
-    print(f"Comments manage request: {data}")  # Log incoming request
+    print(f"Comments manage request: {data}")
 
     if action == "list":
         params = {}
@@ -268,13 +267,11 @@ def manage_comments():
 
     return jsonify({"error": f"Unknown action '{action}'"}), 400
 
-# ─── Reminders ────────────────────────────────────────────────────────────────
-
 @app.route("/reminders/manage", methods=["POST"])
 def manage_reminders():
     data = request.get_json(force=True)
     action = data.get("action")
-    print(f"Reminders manage request: {data}")  # Log incoming request
+    print(f"Reminders manage request: {data}")
 
     if action == "list":
         return proxy("GET", "/reminders")
@@ -291,20 +288,16 @@ def manage_reminders():
 
     return jsonify({"error": f"Unknown action '{action}'"}), 400
 
-# ─── Collaborators ─────────────────────────────────────────────────────────────
-
 @app.route("/collaborators/manage", methods=["POST"])
 def manage_collaborators():
     data = request.get_json(force=True)
-    print(f"Collaborators manage request: {data}")  # Log incoming request
+    print(f"Collaborators manage request: {data}")
     if data.get("action") != "list":
         return jsonify({"error": "Unknown action, only 'list' is supported"}), 400
 
     pid = data.get("project_id")
     path = f"/projects/{pid}/collaborators" if pid else "/collaborators"
     return proxy("GET", path)
-
-# ─── Bootstrapping ────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
