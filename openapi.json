@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "GTD Backend API",
-    "version": "1.0.1",
-    "description": "Complete OpenAPI spec for interacting with Todoist via the GTD backend"
+    "version": "1.0.2",
+    "description": "Collapsed OpenAPI spec for Todoist via the GTD backend (≤30 operations)"
   },
   "servers": [
     {
@@ -36,7 +36,6 @@
                   "project_id": { "type": "string" },
                   "section_id": { "type": "string" },
                   "due_string": { "type": "string" },
-                  "due_lang":   { "type": "string" },
                   "priority":   { "type": "integer", "minimum": 1, "maximum": 4 },
                   "label_ids":  { "type": "array", "items": { "type": "integer" } }
                 },
@@ -51,7 +50,7 @@
     "/tasks/{task_id}": {
       "get": {
         "operationId": "getTask",
-        "summary": "Retrieve a task",
+        "summary": "Retrieve a specific task",
         "parameters": [
           { "name": "task_id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
@@ -90,26 +89,6 @@
         "responses": { "204": { "description": "Task deleted" } }
       }
     },
-    "/tasks/{task_id}/close": {
-      "post": {
-        "operationId": "closeTask",
-        "summary": "Complete a task",
-        "parameters": [
-          { "name": "task_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "204": { "description": "Task closed" } }
-      }
-    },
-    "/tasks/{task_id}/reopen": {
-      "post": {
-        "operationId": "reopenTask",
-        "summary": "Re-open a completed task",
-        "parameters": [
-          { "name": "task_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "204": { "description": "Task reopened" } }
-      }
-    },
     "/tasks/{task_id}/move": {
       "post": {
         "operationId": "moveTask",
@@ -135,6 +114,33 @@
         "responses": { "204": { "description": "Task moved" } }
       }
     },
+    "/tasks/{task_id}/status": {
+      "post": {
+        "operationId": "setTaskStatus",
+        "summary": "Close or reopen a task",
+        "parameters": [
+          { "name": "task_id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["closed", "open"]
+                  }
+                },
+                "required": ["status"]
+              }
+            }
+          }
+        },
+        "responses": { "204": { "description": "Task status updated" } }
+      }
+    },
     "/projects": {
       "get": {
         "operationId": "listProjects",
@@ -151,13 +157,11 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name":           { "type": "string" },
-                  "color":          { "type": "string" },
-                  "parent_id":      { "type": "string" },
-                  "comment_count":  { "type": "integer" },
-                  "is_shared":      { "type": "boolean" },
-                  "is_favorite":    { "type": "boolean" },
-                  "view_style":     { "type": "string" }
+                  "name":        { "type": "string" },
+                  "color":       { "type": "string" },
+                  "parent_id":   { "type": "string" },
+                  "is_shared":   { "type": "boolean" },
+                  "is_favorite": { "type": "boolean" }
                 },
                 "required": ["name"]
               }
@@ -210,24 +214,31 @@
         "responses": { "204": { "description": "Project deleted" } }
       }
     },
-    "/projects/{project_id}/archive": {
+    "/projects/{project_id}/state": {
       "post": {
-        "operationId": "archiveProject",
-        "summary": "Archive a project",
+        "operationId": "setProjectState",
+        "summary": "Archive or unarchive a project",
         "parameters": [
           { "name": "project_id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
-        "responses": { "204": { "description": "Project archived" } }
-      }
-    },
-    "/projects/{project_id}/unarchive": {
-      "post": {
-        "operationId": "unarchiveProject",
-        "summary": "Unarchive a project",
-        "parameters": [
-          { "name": "project_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "204": { "description": "Project unarchived" } }
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": ["archived", "active"]
+                  }
+                },
+                "required": ["state"]
+              }
+            }
+          }
+        },
+        "responses": { "204": { "description": "Project state updated" } }
       }
     },
     "/projects/{project_id}/collaborators": {
@@ -278,7 +289,7 @@
           { "name": "section_id", "in": "path", "required": true, "schema": { "type": "string" } }
         ],
         "responses": { "200": { "description": "Section details" } }
-      },
+      },  
       "post": {
         "operationId": "updateSection",
         "summary": "Update a section",
@@ -382,19 +393,9 @@
       }
     },
     "/labels/shared": {
-      "get": {
-        "operationId": "listSharedLabels",
-        "summary": "List all shared labels",
-        "parameters": [
-          { "name": "omit_personal", "in": "query", "schema": { "type": "boolean" } }
-        ],
-        "responses": { "200": { "description": "Shared labels list" } }
-      }
-    },
-    "/labels/shared/rename": {
       "post": {
-        "operationId": "renameSharedLabels",
-        "summary": "Rename a shared label",
+        "operationId": "manageSharedLabels",
+        "summary": "List, rename, or remove shared labels",
         "requestBody": {
           "required": true,
           "content": {
@@ -402,51 +403,25 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "action":   { "type": "string", "enum": ["list","rename","remove"] },
                   "name":     { "type": "string" },
                   "new_name": { "type": "string" }
                 },
-                "required": ["name", "new_name"]
+                "required": ["action"]
               }
             }
           }
         },
-        "responses": { "204": { "description": "Shared label(s) renamed" } }
-      }
-    },
-    "/labels/shared/remove": {
-      "post": {
-        "operationId": "removeSharedLabels",
-        "summary": "Remove a shared label from all tasks",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": { "type": "string" }
-                },
-                "required": ["name"]
-              }
-            }
-          }
-        },
-        "responses": { "204": { "description": "Shared label(s) removed" } }
+        "responses": {
+          "200": { "description": "Shared labels list or confirmation" },
+          "204": { "description": "Shared label action succeeded" }
+        }
       }
     },
     "/comments": {
-      "get": {
-        "operationId": "listComments",
-        "summary": "List all comments",
-        "parameters": [
-          { "name": "task_id", "in": "query", "schema": { "type": "string" } },
-          { "name": "project_id", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "Comments list" } }
-      },
       "post": {
-        "operationId": "createComment",
-        "summary": "Add a comment",
+        "operationId": "manageComments",
+        "summary": "List, create, update, or delete comments",
         "requestBody": {
           "required": true,
           "content": {
@@ -454,56 +429,21 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "content":    { "type": "string" },
+                  "action":     { "type": "string", "enum": ["list","create","update","delete"] },
+                  "comment_id": { "type": "string" },
                   "task_id":    { "type": "string" },
-                  "project_id": { "type": "string" }
+                  "project_id": { "type": "string" },
+                  "content":    { "type": "string" }
                 },
-                "required": ["content"]
+                "required": ["action"]
               }
             }
           }
         },
-        "responses": { "200": { "description": "Comment created" } }
-      }
-    },
-    "/comments/{comment_id}": {
-      "get": {
-        "operationId": "getComment",
-        "summary": "Retrieve a comment",
-        "parameters": [
-          { "name": "comment_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "Comment details" } }
-      },
-      "post": {
-        "operationId": "updateComment",
-        "summary": "Update a comment",
-        "parameters": [
-          { "name": "comment_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "content": { "type": "string" }
-                },
-                "required": ["content"]
-              }
-            }
-          }
-        },
-        "responses": { "200": { "description": "Comment updated" } }
-      },
-      "delete": {
-        "operationId": "deleteComment",
-        "summary": "Delete a comment",
-        "parameters": [
-          { "name": "comment_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "204": { "description": "Comment deleted" } }
+        "responses": {
+          "200": { "description": "Comments list or comment created/updated" },
+          "204": { "description": "Comment deleted" }
+        }
       }
     },
     "/reminders": {
@@ -525,7 +465,7 @@
                   "task_id":    { "type": "string" },
                   "due_string": { "type": "string" }
                 },
-                "required": ["task_id", "due_string"]
+                "required": ["task_id","due_string"]
               }
             }
           }
@@ -542,13 +482,6 @@
         ],
         "responses": { "204": { "description": "Reminder deleted" } }
       }
-    },
-    "/collaborators": {
-      "get": {
-        "operationId": "listCollaborators",
-        "summary": "List collaborators on shared projects",
-        "responses": { "200": { "description": "Collaborators list" } }
-      }
     }
   },
   "components": {
@@ -561,6 +494,8 @@
     }
   },
   "security": [
-    { "ApiKeyAuth": [] }
+    {
+      "ApiKeyAuth": []
+    }
   ]
 }
