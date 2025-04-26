@@ -1,9 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "GTD Backend API",
-    "version": "1.0.2",
-    "description": "Collapsed OpenAPI spec for Todoist via the GTD backend (≤30 operations)"
+    "title": "GTD Backend API (Collapsed)",
+    "version": "1.0.3",
+    "description": "Fully collapsed OpenAPI spec for Todoist via the GTD backend (≤30 operations)"
   },
   "servers": [
     {
@@ -11,20 +11,10 @@
     }
   ],
   "paths": {
-    "/tasks": {
-      "get": {
-        "operationId": "listTasks",
-        "summary": "List all active tasks",
-        "parameters": [
-          { "name": "project_id", "in": "query", "schema": { "type": "string" } },
-          { "name": "label_id",   "in": "query", "schema": { "type": "string" } },
-          { "name": "filter",     "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "A list of tasks" } }
-      },
+    "/tasks/manage": {
       "post": {
-        "operationId": "createTask",
-        "summary": "Create a new task",
+        "operationId": "manageTasks",
+        "summary": "List, get, create, update, delete, move or change status of tasks",
         "requestBody": {
           "required": true,
           "content": {
@@ -32,124 +22,37 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "content":    { "type": "string" },
+                  "action": {
+                    "type": "string",
+                    "enum": ["list","get","create","update","delete","move","status"]
+                  },
+                  "task_id":    { "type": "string" },
                   "project_id": { "type": "string" },
                   "section_id": { "type": "string" },
-                  "due_string": { "type": "string" },
-                  "priority":   { "type": "integer", "minimum": 1, "maximum": 4 },
-                  "label_ids":  { "type": "array", "items": { "type": "integer" } }
-                },
-                "required": ["content"]
-              }
-            }
-          }
-        },
-        "responses": { "200": { "description": "Task created" } }
-      }
-    },
-    "/tasks/{task_id}": {
-      "get": {
-        "operationId": "getTask",
-        "summary": "Retrieve a specific task",
-        "parameters": [
-          { "name": "task_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "Task details" } }
-      },
-      "post": {
-        "operationId": "updateTask",
-        "summary": "Update task properties",
-        "parameters": [
-          { "name": "task_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
                   "content":    { "type": "string" },
                   "due_string": { "type": "string" },
                   "priority":   { "type": "integer", "minimum": 1, "maximum": 4 },
-                  "label_ids":  { "type": "array", "items": { "type": "integer" } }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "200": { "description": "Task updated" } }
-      },
-      "delete": {
-        "operationId": "deleteTask",
-        "summary": "Delete a task",
-        "parameters": [
-          { "name": "task_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "204": { "description": "Task deleted" } }
-      }
-    },
-    "/tasks/{task_id}/move": {
-      "post": {
-        "operationId": "moveTask",
-        "summary": "Move task to another project or section",
-        "parameters": [
-          { "name": "task_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "project_id": { "type": "string" },
-                  "section_id": { "type": "string" }
-                },
-                "required": ["project_id"]
-              }
-            }
-          }
-        },
-        "responses": { "204": { "description": "Task moved" } }
-      }
-    },
-    "/tasks/{task_id}/status": {
-      "post": {
-        "operationId": "setTaskStatus",
-        "summary": "Close or reopen a task",
-        "parameters": [
-          { "name": "task_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
+                  "label_ids":  { "type": "array", "items": { "type": "integer" } },
                   "status": {
                     "type": "string",
-                    "enum": ["closed", "open"]
+                    "enum": ["closed","open"]
                   }
                 },
-                "required": ["status"]
+                "required": ["action"]
               }
             }
           }
         },
-        "responses": { "204": { "description": "Task status updated" } }
+        "responses": {
+          "200": { "description": "JSON response for list/get/create/update/move" },
+          "204": { "description": "No content for delete/status actions" }
+        }
       }
     },
-    "/projects": {
-      "get": {
-        "operationId": "listProjects",
-        "summary": "List all projects",
-        "responses": { "200": { "description": "Projects list" } }
-      },
+    "/projects/manage": {
       "post": {
-        "operationId": "createProject",
-        "summary": "Create a new project",
+        "operationId": "manageProjects",
+        "summary": "List, get, create, update, delete, archive/unarchive or list collaborators of projects",
         "requestBody": {
           "required": true,
           "content": {
@@ -157,112 +60,36 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name":        { "type": "string" },
-                  "color":       { "type": "string" },
-                  "parent_id":   { "type": "string" },
+                  "action": {
+                    "type": "string",
+                    "enum": ["list","get","create","update","delete","state","collaborators"]
+                  },
+                  "project_id": { "type": "string" },
+                  "name":       { "type": "string" },
+                  "color":      { "type": "string" },
+                  "parent_id":  { "type": "string" },
                   "is_shared":   { "type": "boolean" },
-                  "is_favorite": { "type": "boolean" }
-                },
-                "required": ["name"]
-              }
-            }
-          }
-        },
-        "responses": { "200": { "description": "Project created" } }
-      }
-    },
-    "/projects/{project_id}": {
-      "get": {
-        "operationId": "getProject",
-        "summary": "Retrieve project details",
-        "parameters": [
-          { "name": "project_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "Project details" } }
-      },
-      "post": {
-        "operationId": "updateProject",
-        "summary": "Update a project",
-        "parameters": [
-          { "name": "project_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name":        { "type": "string" },
-                  "color":       { "type": "string" },
-                  "order":       { "type": "integer" },
-                  "is_shared":   { "type": "boolean" },
-                  "is_favorite": { "type": "boolean" }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "200": { "description": "Project updated" } }
-      },
-      "delete": {
-        "operationId": "deleteProject",
-        "summary": "Delete a project",
-        "parameters": [
-          { "name": "project_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "204": { "description": "Project deleted" } }
-      }
-    },
-    "/projects/{project_id}/state": {
-      "post": {
-        "operationId": "setProjectState",
-        "summary": "Archive or unarchive a project",
-        "parameters": [
-          { "name": "project_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
+                  "is_favorite": { "type": "boolean" },
                   "state": {
                     "type": "string",
-                    "enum": ["archived", "active"]
+                    "enum": ["archived","active"]
                   }
                 },
-                "required": ["state"]
+                "required": ["action"]
               }
             }
           }
         },
-        "responses": { "204": { "description": "Project state updated" } }
+        "responses": {
+          "200": { "description": "JSON response for list/get/create/update/collaborators" },
+          "204": { "description": "No content for delete/state actions" }
+        }
       }
     },
-    "/projects/{project_id}/collaborators": {
-      "get": {
-        "operationId": "listProjectCollaborators",
-        "summary": "List collaborators on a shared project",
-        "parameters": [
-          { "name": "project_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "Collaborators list" } }
-      }
-    },
-    "/sections": {
-      "get": {
-        "operationId": "listSections",
-        "summary": "List all sections",
-        "parameters": [
-          { "name": "project_id", "in": "query", "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "Sections list" } }
-      },
+    "/sections/manage": {
       "post": {
-        "operationId": "createSection",
-        "summary": "Create a new section",
+        "operationId": "manageSections",
+        "summary": "List, get, create, update or delete sections",
         "requestBody": {
           "required": true,
           "content": {
@@ -270,32 +97,30 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": ["list","get","create","update","delete"]
+                  },
+                  "section_id": { "type": "string" },
                   "project_id": { "type": "string" },
-                  "name":       { "type": "string" }
+                  "name":       { "type": "string" },
+                  "order":      { "type": "integer" }
                 },
-                "required": ["project_id", "name"]
+                "required": ["action"]
               }
             }
           }
         },
-        "responses": { "200": { "description": "Section created" } }
+        "responses": {
+          "200": { "description": "JSON response for list/get/create/update" },
+          "204": { "description": "No content for delete actions" }
+        }
       }
     },
-    "/sections/{section_id}": {
-      "get": {
-        "operationId": "getSection",
-        "summary": "Retrieve a section",
-        "parameters": [
-          { "name": "section_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "Section details" } }
-      },  
+    "/labels/manage": {
       "post": {
-        "operationId": "updateSection",
-        "summary": "Update a section",
-        "parameters": [
-          { "name": "section_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
+        "operationId": "manageLabels",
+        "summary": "List, get, create, update, delete personal labels or manage shared labels",
         "requestBody": {
           "required": true,
           "content": {
@@ -303,108 +128,18 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "name":  { "type": "string" },
-                  "order": { "type": "integer" }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "200": { "description": "Section updated" } }
-      },
-      "delete": {
-        "operationId": "deleteSection",
-        "summary": "Delete a section",
-        "parameters": [
-          { "name": "section_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "204": { "description": "Section deleted" } }
-      }
-    },
-    "/labels": {
-      "get": {
-        "operationId": "listLabels",
-        "summary": "List personal labels",
-        "responses": { "200": { "description": "Labels list" } }
-      },
-      "post": {
-        "operationId": "createLabel",
-        "summary": "Create a new personal label",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name":        { "type": "string" },
-                  "color":       { "type": "string" },
-                  "order":       { "type": "integer" },
-                  "is_favorite": { "type": "boolean" }
-                },
-                "required": ["name"]
-              }
-            }
-          }
-        },
-        "responses": { "200": { "description": "Label created" } }
-      }
-    },
-    "/labels/{label_id}": {
-      "get": {
-        "operationId": "getLabel",
-        "summary": "Retrieve a personal label",
-        "parameters": [
-          { "name": "label_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "200": { "description": "Label details" } }
-      },
-      "post": {
-        "operationId": "updateLabel",
-        "summary": "Update a personal label",
-        "parameters": [
-          { "name": "label_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name":        { "type": "string" },
-                  "color":       { "type": "string" },
-                  "order":       { "type": "integer" },
-                  "is_favorite": { "type": "boolean" }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "200": { "description": "Label updated" } }
-      },
-      "delete": {
-        "operationId": "deleteLabel",
-        "summary": "Delete a personal label",
-        "parameters": [
-          { "name": "label_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "204": { "description": "Label deleted" } }
-      }
-    },
-    "/labels/shared": {
-      "post": {
-        "operationId": "manageSharedLabels",
-        "summary": "List, rename, or remove shared labels",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "action":   { "type": "string", "enum": ["list","rename","remove"] },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "list","get","create","update","delete",
+                      "list_shared","rename_shared","remove_shared"
+                    ]
+                  },
+                  "label_id": { "type": "string" },
                   "name":     { "type": "string" },
+                  "color":    { "type": "string" },
+                  "order":    { "type": "integer" },
+                  "is_favorite": { "type": "boolean" },
                   "new_name": { "type": "string" }
                 },
                 "required": ["action"]
@@ -413,15 +148,15 @@
           }
         },
         "responses": {
-          "200": { "description": "Shared labels list or confirmation" },
-          "204": { "description": "Shared label action succeeded" }
+          "200": { "description": "JSON response for list/get/create/update/shared-list/shared-rename" },
+          "204": { "description": "No content for delete/shared-remove actions" }
         }
       }
     },
-    "/comments": {
+    "/comments/manage": {
       "post": {
         "operationId": "manageComments",
-        "summary": "List, create, update, or delete comments",
+        "summary": "List, get, create, update or delete comments",
         "requestBody": {
           "required": true,
           "content": {
@@ -429,7 +164,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "action":     { "type": "string", "enum": ["list","create","update","delete"] },
+                  "action":     { "type": "string", "enum": ["list","get","create","update","delete"] },
                   "comment_id": { "type": "string" },
                   "task_id":    { "type": "string" },
                   "project_id": { "type": "string" },
@@ -441,20 +176,15 @@
           }
         },
         "responses": {
-          "200": { "description": "Comments list or comment created/updated" },
-          "204": { "description": "Comment deleted" }
+          "200": { "description": "JSON response for list/get/create/update" },
+          "204": { "description": "No content for delete actions" }
         }
       }
     },
-    "/reminders": {
-      "get": {
-        "operationId": "listReminders",
-        "summary": "List all reminders",
-        "responses": { "200": { "description": "Reminders list" } }
-      },
+    "/reminders/manage": {
       "post": {
-        "operationId": "createReminder",
-        "summary": "Create a reminder for a task",
+        "operationId": "manageReminders",
+        "summary": "List, create or delete reminders",
         "requestBody": {
           "required": true,
           "content": {
@@ -462,29 +192,49 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "action":     { "type": "string", "enum": ["list","create","delete"] },
+                  "reminder_id":{ "type": "string" },
                   "task_id":    { "type": "string" },
                   "due_string": { "type": "string" }
                 },
-                "required": ["task_id","due_string"]
+                "required": ["action"]
               }
             }
           }
         },
-        "responses": { "200": { "description": "Reminder created" } }
+        "responses": {
+          "200": { "description": "JSON response for list/create" },
+          "204": { "description": "No content for delete actions" }
+        }
       }
     },
-    "/reminders/{reminder_id}": {
-      "delete": {
-        "operationId": "deleteReminder",
-        "summary": "Delete a reminder",
-        "parameters": [
-          { "name": "reminder_id", "in": "path", "required": true, "schema": { "type": "string" } }
-        ],
-        "responses": { "204": { "description": "Reminder deleted" } }
+    "/collaborators/manage": {
+      "post": {
+        "operationId": "manageCollaborators",
+        "summary": "List collaborators on shared projects",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action":    { "type": "string", "enum": ["list"] },
+                  "project_id":{ "type": "string" }
+                },
+                "required": ["action"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "JSON response for list collaborators" }
+        }
       }
     }
   },
   "components": {
+    "schemas": {},
     "securitySchemes": {
       "ApiKeyAuth": {
         "type": "apiKey",
