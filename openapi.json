@@ -24,28 +24,80 @@
                 "properties": {
                   "action": {
                     "type": "string",
-                    "enum": ["list","get","create","update","delete","move","status"]
+                    "enum": [
+                      "list",
+                      "get",
+                      "create",
+                      "update",
+                      "delete",
+                      "move",
+                      "status"
+                    ]
                   },
-                  "task_id":    { "type": "string" },
-                  "project_id": { "type": "string" },
-                  "section_id": { "type": "string" },
-                  "content":    { "type": "string" },
-                  "due_string": { "type": "string" },
-                  "priority":   { "type": "integer", "minimum": 1, "maximum": 4 },
-                  "label_ids":  { "type": "array", "items": { "type": "integer" } },
+                  "task_id": {
+                    "type": "string",
+                    "description": "Required for get, update, delete, move, status actions."
+                  },
+                  "project_id": {
+                    "type": "string",
+                    "description": "Optional for create/list/move. Used to specify the project."
+                  },
+                  "section_id": {
+                    "type": "string",
+                    "description": "Optional for create/move. Used to specify the section within a project."
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "Required for create, optional for update. The task's content."
+                  },
+                  "due_string": {
+                    "type": "string",
+                    "description": "Optional for create/update. Human-readable due date (e.g., 'tomorrow', 'next monday')."
+                  },
+                  "priority": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4,
+                    "description": "Optional for create/update. Task priority (1=p4, 4=p1)."
+                  },
+                  // --- CORRECTED SECTION START ---
+                  "labels": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Optional for create/update. Array of label names (strings) to attach (e.g., [\"email\", \"work\"])"
+                  },
+                  // --- CORRECTED SECTION END ---
                   "status": {
                     "type": "string",
-                    "enum": ["closed","open"]
+                    "enum": [
+                      "closed",
+                      "open"
+                    ],
+                    "description": "Required for status action. Use 'closed' to complete, 'open' to reopen."
                   }
                 },
-                "required": ["action"]
+                "required": [
+                  "action"
+                ]
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "JSON response for list/get/create/update/move" },
-          "204": { "description": "No content for delete/status actions" }
+          "200": {
+            "description": "JSON response for list/get/create/update/move actions."
+          },
+          "204": {
+            "description": "No content response for successful delete/status actions."
+          },
+          "400": {
+            "description": "Bad Request - Invalid input or parameters."
+          },
+          "404": {
+            "description": "Not Found - Task, project, or section ID does not exist."
+          }
         }
       }
     },
@@ -62,27 +114,56 @@
                 "properties": {
                   "action": {
                     "type": "string",
-                    "enum": ["list","get","create","update","delete","state","collaborators"]
+                    "enum": [
+                      "list",
+                      "get",
+                      "create",
+                      "update",
+                      "delete",
+                      "state",
+                      "collaborators"
+                    ]
                   },
-                  "project_id": { "type": "string" },
-                  "name":       { "type": "string" },
-                  "color":      { "type": "string" },
-                  "parent_id":  { "type": "string" },
-                  "is_shared":   { "type": "boolean" },
-                  "is_favorite": { "type": "boolean" },
+                  "project_id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "color": {
+                    "type": "string"
+                  },
+                  "parent_id": {
+                    "type": "string"
+                  },
+                  "is_shared": {
+                    "type": "boolean"
+                  },
+                  "is_favorite": {
+                    "type": "boolean"
+                  },
                   "state": {
                     "type": "string",
-                    "enum": ["archived","active"]
+                    "enum": [
+                      "archived",
+                      "active"
+                    ]
                   }
                 },
-                "required": ["action"]
+                "required": [
+                  "action"
+                ]
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "JSON response for list/get/create/update/collaborators" },
-          "204": { "description": "No content for delete/state actions" }
+          "200": {
+            "description": "JSON response for list/get/create/update/collaborators"
+          },
+          "204": {
+            "description": "No content for delete/state actions"
+          }
         }
       }
     },
@@ -99,21 +180,41 @@
                 "properties": {
                   "action": {
                     "type": "string",
-                    "enum": ["list","get","create","update","delete"]
+                    "enum": [
+                      "list",
+                      "get",
+                      "create",
+                      "update",
+                      "delete"
+                    ]
                   },
-                  "section_id": { "type": "string" },
-                  "project_id": { "type": "string" },
-                  "name":       { "type": "string" },
-                  "order":      { "type": "integer" }
+                  "section_id": {
+                    "type": "string"
+                  },
+                  "project_id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "order": {
+                    "type": "integer"
+                  }
                 },
-                "required": ["action"]
+                "required": [
+                  "action"
+                ]
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "JSON response for list/get/create/update" },
-          "204": { "description": "No content for delete actions" }
+          "200": {
+            "description": "JSON response for list/get/create/update"
+          },
+          "204": {
+            "description": "No content for delete actions"
+          }
         }
       }
     },
@@ -131,25 +232,49 @@
                   "action": {
                     "type": "string",
                     "enum": [
-                      "list","get","create","update","delete",
-                      "list_shared","rename_shared","remove_shared"
+                      "list",
+                      "get",
+                      "create",
+                      "update",
+                      "delete",
+                      "list_shared",
+                      "rename_shared",
+                      "remove_shared"
                     ]
                   },
-                  "label_id": { "type": "string" },
-                  "name":     { "type": "string" },
-                  "color":    { "type": "string" },
-                  "order":    { "type": "integer" },
-                  "is_favorite": { "type": "boolean" },
-                  "new_name": { "type": "string" }
+                  "label_id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "color": {
+                    "type": "string"
+                  },
+                  "order": {
+                    "type": "integer"
+                  },
+                  "is_favorite": {
+                    "type": "boolean"
+                  },
+                  "new_name": {
+                    "type": "string"
+                  }
                 },
-                "required": ["action"]
+                "required": [
+                  "action"
+                ]
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "JSON response for list/get/create/update/shared-list/shared-rename" },
-          "204": { "description": "No content for delete/shared-remove actions" }
+          "200": {
+            "description": "JSON response for list/get/create/update/shared-list/shared-rename"
+          },
+          "204": {
+            "description": "No content for delete/shared-remove actions"
+          }
         }
       }
     },
@@ -164,20 +289,43 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "action":     { "type": "string", "enum": ["list","get","create","update","delete"] },
-                  "comment_id": { "type": "string" },
-                  "task_id":    { "type": "string" },
-                  "project_id": { "type": "string" },
-                  "content":    { "type": "string" }
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "list",
+                      "get",
+                      "create",
+                      "update",
+                      "delete"
+                    ]
+                  },
+                  "comment_id": {
+                    "type": "string"
+                  },
+                  "task_id": {
+                    "type": "string"
+                  },
+                  "project_id": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
                 },
-                "required": ["action"]
+                "required": [
+                  "action"
+                ]
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "JSON response for list/get/create/update" },
-          "204": { "description": "No content for delete actions" }
+          "200": {
+            "description": "JSON response for list/get/create/update"
+          },
+          "204": {
+            "description": "No content for delete actions"
+          }
         }
       }
     },
@@ -192,19 +340,38 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "action":     { "type": "string", "enum": ["list","create","delete"] },
-                  "reminder_id":{ "type": "string" },
-                  "task_id":    { "type": "string" },
-                  "due_string": { "type": "string" }
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "list",
+                      "create",
+                      "delete"
+                    ]
+                  },
+                  "reminder_id": {
+                    "type": "string"
+                  },
+                  "task_id": {
+                    "type": "string"
+                  },
+                  "due_string": {
+                    "type": "string"
+                  }
                 },
-                "required": ["action"]
+                "required": [
+                  "action"
+                ]
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "JSON response for list/create" },
-          "204": { "description": "No content for delete actions" }
+          "200": {
+            "description": "JSON response for list/create"
+          },
+          "204": {
+            "description": "No content for delete actions"
+          }
         }
       }
     },
@@ -219,16 +386,27 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "action":    { "type": "string", "enum": ["list"] },
-                  "project_id":{ "type": "string" }
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "list"
+                    ]
+                  },
+                  "project_id": {
+                    "type": "string"
+                  }
                 },
-                "required": ["action"]
+                "required": [
+                  "action"
+                ]
               }
             }
           }
         },
         "responses": {
-          "200": { "description": "JSON response for list collaborators" }
+          "200": {
+            "description": "JSON response for list collaborators"
+          }
         }
       }
     }
