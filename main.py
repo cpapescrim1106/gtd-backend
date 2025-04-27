@@ -98,16 +98,14 @@ def manage_tasks():
     print(f"Tasks manage request received: {data}")
 
     if not action:
-         return jsonify({"error": "'action' field is required"}), 400
+        return jsonify({"error": "'action' field is required"}), 400
 
-    action = action.lower() # Normalize action to lower case
+    action = action.lower()  # Normalize action to lowercase
 
     # --- List Tasks ---
     if action == "list":
-        # Note: Todoist uses 'label' (string name) or 'label_id' (numeric id) for filtering
-        # Keep 'label_id' here if your OpenAPI spec uses it for *filtering* lists
         params = {}
-        for key in ("project_id", "label_id", "filter", "lang"): # Add any other valid filter params
+        for key in ("project_id", "label_id", "filter", "lang"):
             if data.get(key) is not None:
                 params[key] = data[key]
         return proxy("GET", "/tasks", params=params)
@@ -121,23 +119,20 @@ def manage_tasks():
 
     # --- Create Task ---
     if action == "create":
-        # Fields directly supported by Todoist create task API
-        payload = {k: data[k] for k in ("content", "project_id", "section_id",
-                                        "parent_id", "order", "due_string",
-                                        "due_date", "due_datetime", "due_lang",
-                                        "priority", "assignee_id", "duration",
-                                        "duration_unit") if k in data}
+        payload = {k: data[k] for k in (
+            "content", "project_id", "section_id", "parent_id", "order",
+            "due_string", "due_date", "due_datetime", "due_lang",
+            "priority", "assignee_id", "duration", "duration_unit", "description"  # <-- Added description here
+        ) if k in data}
 
-        # Handle 'labels' (array of strings) - CORRECTED
         if "labels" in data:
             if isinstance(data["labels"], list) and all(isinstance(item, str) for item in data["labels"]):
-                payload["labels"] = data["labels"] # Pass list of strings directly
+                payload["labels"] = data["labels"]
             else:
                 return jsonify({"error": "'labels' must be a list of strings"}), 400
 
-        # Content is mandatory for creation
         if "content" not in payload or not payload["content"]:
-             return jsonify({"error": "'content' is required to create a task"}), 400
+            return jsonify({"error": "'content' is required to create a task"}), 400
 
         return proxy("POST", "/tasks", json_data=payload)
 
@@ -147,21 +142,19 @@ def manage_tasks():
         if not tid:
             return jsonify({"error": "task_id is required for 'update' action"}), 400
 
-        # Fields directly supported by Todoist update task API
-        payload = {k: data[k] for k in ("content", "due_string", "due_date",
-                                        "due_datetime", "due_lang", "priority",
-                                        "assignee_id", "duration", "duration_unit") if k in data}
+        payload = {k: data[k] for k in (
+            "content", "due_string", "due_date", "due_datetime", "due_lang",
+            "priority", "assignee_id", "duration", "duration_unit", "description"  # <-- Added description here
+        ) if k in data}
 
-        # Handle 'labels' (array of strings) - CORRECTED
         if "labels" in data:
-             if isinstance(data["labels"], list) and all(isinstance(item, str) for item in data["labels"]):
-                payload["labels"] = data["labels"] # Pass list of strings directly
-             else:
+            if isinstance(data["labels"], list) and all(isinstance(item, str) for item in data["labels"]):
+                payload["labels"] = data["labels"]
+            else:
                 return jsonify({"error": "'labels' must be a list of strings"}), 400
 
-        # Ensure at least one field is being updated
         if not payload:
-             return jsonify({"error": "At least one field (content, due_*, priority, labels, etc.) must be provided for update"}), 400
+            return jsonify({"error": "At least one field (content, due_*, priority, labels, description, etc.) must be provided for update"}), 400
 
         return proxy("POST", f"/tasks/{tid}", json_data=payload)
 
@@ -173,41 +166,33 @@ def manage_tasks():
         return proxy("DELETE", f"/tasks/{tid}")
 
     # --- Move Task ---
-    # Note: Todoist doesn't have a dedicated 'move' endpoint like this.
-    # Moving involves updating parent_id, section_id, or project_id via the standard update endpoint.
-    # This 'move' action might need to be refactored to use the 'update' logic.
-    # Keeping original logic for now, but it might not work as intended with REST v2.
     if action == "move":
         print("Warning: The 'move' action might not work as expected with Todoist REST API v2. Consider using 'update' with project_id/section_id.")
         tid = data.get("task_id")
         if not tid:
             return jsonify({"error": "task_id is required for 'move' action"}), 400
-        # Todoist REST v2 uses update (POST /tasks/{id}) for moves.
-        # A separate /move endpoint does not exist in REST v2.
-        # Correct approach: Prepare update payload
+
         move_payload = {}
         if "project_id" in data:
-             move_payload["project_id"] = data["project_id"]
+            move_payload["project_id"] = data["project_id"]
         if "section_id" in data:
-             move_payload["section_id"] = data["section_id"]
-        # Could also include parent_id or order changes here
+            move_payload["section_id"] = data["section_id"]
+
         if not move_payload:
             return jsonify({"error": "Either 'project_id' or 'section_id' is required for 'move' action"}), 400
-        # Use the UPDATE proxy call
-        return proxy("POST", f"/tasks/{tid}", json_data=move_payload)
 
+        return proxy("POST", f"/tasks/{tid}", json_data=move_payload)
 
     # --- Change Task Status (Close/Reopen) ---
     if action == "status":
         tid = data.get("task_id")
-        status = data.get("status", "").lower() # Normalize status
+        status = data.get("status", "").lower()
         if not tid:
-             return jsonify({"error": "task_id is required for 'status' action"}), 400
+            return jsonify({"error": "task_id is required for 'status' action"}), 400
         if status not in ("closed", "open"):
             return jsonify({"error": "status ('closed' or 'open') is required for 'status' action"}), 400
 
         endpoint = "close" if status == "closed" else "reopen"
-        # No body needed for close/reopen actions
         return proxy("POST", f"/tasks/{tid}/{endpoint}")
 
     # --- Unknown Action ---
